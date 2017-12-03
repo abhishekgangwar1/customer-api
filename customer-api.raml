@@ -1,0 +1,215 @@
+#%RAML 1.0
+title: "Customer Maintanance"
+description: "Customer API is designed to Create and maintain customer records in\
+  \ the system. Customer API can be enhanced to handle Orders with each order having\
+  \ certain products. For example, Customer submits an Order of Products. Customer\
+  \ model will have one to many association with Order model and Order will have one\
+  \ to many association with Products.\n\n* Customer can expose methods to retreive\
+  \ Customers order.\n* Order API can expose methods to create and maintain Order\
+  \ with each Order linking back to Customer.\n* Product API can be used to create\
+  \ and maintain products."
+version: "v1"
+protocols: [  HTTP, HTTPS ]
+baseUri: "http://{environment}.customer-api.com.au/{version}"
+baseUriParameters:
+  environment:
+    type: string
+    enum: [ "dev", "sit", "uat", "preprod", "prod" ]
+mediaType: [ application/json ]
+schemas:
+  Customer:   !include schemas/customer.raml
+  Error:      !include schemas/error.raml
+  CustomerNotFound: !include examples/ErrorCustomerNotFound.json
+  ErrorInternalServer: !include examples/ErrorInternalServer.json
+  ErrorBadRequest: !include examples/ErrorBadRequest.json
+  ErrorConflictingResource: !include examples/ErrorConflictingResource.json
+  ErrorMandatoryField: !include examples/ErrorMandatoryField.json
+  ErrorValueExceedsLength: !include examples/ErrorValueExceedsLength.json
+traits:
+  secured:       !include traits/headerAuthorizationOAuth.raml
+  allowsCrossOrigin:   !include traits/headerAllowCrossOrigin.raml
+  notCached:     !include traits/headerCacheControl.raml
+securitySchemes:
+  oauth_2_0: !include securitySchemes/oAuthSecurityScheme.raml
+securedBy:
+- oauth_2_0:
+    scopes: ["read", "write"]
+/customers:
+  is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin, notCached ]
+  get:
+    queryParameters:
+      firstName?: string
+  /firstName/{firstName}:
+    get:
+      description: "Get all customers with a given first name"
+      responses:
+        200:
+          body:
+            application/json:
+              type: array
+              uniqueItems: true
+              maxItems: 100
+              items:
+                type: "Customer"
+                description: "Limit paging to 100 customers per page and customers can\
+                  \ be sorted in asc or desc order of creation or modification"
+              example:
+                value: !include examples/Customers.json
+        204:
+          description: "No customers found"
+          body:
+            type: string
+        500:
+          description: "Some server side error occurred."
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorInternalServer
+                strict: false
+/customer:
+  is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin ]
+  post:
+    description: "Create new Customer"
+    body:
+      type: Customer
+      example:
+        value: !include examples/Customer.json
+    responses:
+      201:
+        description: "Customer created successfully"
+        body:
+          application/json:
+            type: Customer
+            example:
+              value: !include examples/Customer.json
+      400:
+        description: "Request syntactically incorrect. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorBadRequest
+              strict: false
+      500:
+        description: "Some server side error occurred."
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorInternalServer
+              strict: false
+      409:
+        description: "Creation failed because of conflict with another resource. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorConflictingResource
+              strict: false
+      200:
+        body:
+          application/json:
+            type: Error
+            examples:
+              example:
+                value: ErrorValueExceedsLength
+                strict: false
+              example1:
+                value: ErrorMandatoryField
+                strict: false
+  /{id}:
+    is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin ]
+    uriParameters:
+      id:
+        type: number
+        required: true
+    get:
+      description: "Get Customer by id"
+      responses:
+        200:
+          body:
+            application/json:
+              type: Customer
+              example:
+                value: !include examples/Customer.json
+        404:
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorCustomerNotFound
+                strict: false
+        500:
+          description: "Some server side error occurred."
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorInternalServer
+                strict: false
+    delete:
+      description: "Delete Customer by id"
+      responses:
+        204:
+          description: "Customer deleted successfully"
+        404:
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorCustomerNotFound
+                strict: false
+        500:
+          description: "Some server side error occurred."
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorInternalServer
+                strict: false
+    put:
+      description: "Update a Customer by id"
+      body:
+        type: Customer
+        example:
+          value: !include examples/Customer.json
+      responses:
+        200:
+          description: "Customer updated successfully"
+          body:
+            application/json:
+              type: Customer
+              example:
+                value: !include examples/Customer.json
+        404:
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorCustomerNotFound
+                strict: false
+        400:
+          description: "Request syntactically incorrect. Look for details in the response payload."
+          body:
+            application/json:
+              schema: Error
+              example:
+                value: ErrorBadRequest
+                strict: false
+        500:
+          description: "Some server side error occurred."
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorInternalServer
+                strict: false
+        409:
+          description: "Creation failed because of conflict with another resource. Look for details in the response payload."
+          body:
+            application/json:
+              schema: Error
+              example:
+                value: ErrorConflictingResource
+                strict: false

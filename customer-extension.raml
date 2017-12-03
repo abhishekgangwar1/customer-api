@@ -1,0 +1,225 @@
+#%RAML 1.0 Extension
+description: "Extension of Customer API to indicate API can expose methods to \
+  \ create, maintain, retrieve Customers order.\
+  \ Customer database model will have one-to-many association with Order \
+  \ Order model will have one-to-many association with products \
+  \ API can be extended in future (not shown in this extension) \
+  \ to add or maintain products."
+usage: Get Orders placed by customer
+version: "v2"
+extends: customer-api.raml
+schemas:
+  Order:      !include schemas/order.raml
+  Product:    !include schemas/product.raml
+  ErrorOrderNotFound: !include examples/ErrorOrderNotFound.json
+/customer/{customerId}/order/create:
+  is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin ]
+  uriParameters:
+    customerId:
+      description: "Customer Id"
+      type: number
+      required: true
+  post:
+    description: "Create new Order for a Customer"
+    body:
+      type: Order
+      example:
+        value: !include examples/Order.json
+    responses:
+      201:
+        description: "Order created successfully"
+        body:
+          application/json:
+            type: Order
+            example:
+              value: !include examples/Order.json
+      400:
+        description: "Request syntactically incorrect. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorBadRequest
+              strict: false
+      500:
+        description: "Some server side error occurred."
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorInternalServer
+              strict: false
+      409:
+        description: "Creation failed because of conflict with another resource. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorConflictingResource
+              strict: false
+      200:
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorMandatoryField
+              strict: false
+/customer/{customerId}/orders:
+  is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin ]
+  uriParameters:
+    customerId:
+      description: "Customer Id"
+      type: number
+      required: true
+  get:
+    description: "Get all orders placed by a customer"
+    responses:
+      200:
+        body:
+          application/json:
+            type: array
+            uniqueItems: true
+            maxItems: 10
+            items:
+              type: Order
+              description: "Limit paging to 10 Order per page and Orders can\
+                \ be sorted in asc or desc order of creation or modification"
+            example:
+              value: !include examples/orders.json
+      204:
+        description: "No Orders found"
+        body:
+          type: string
+      500:
+        description: "Some server side error occurred."
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorInternalServer
+              strict: false
+/customer/{customerId}/order/{orderId}:
+  is: [ secured: {oAuthToken : "validToken"}, allowsCrossOrigin ]
+  uriParameters:
+    customerId:
+      description: "Customer Id"
+      type: number
+      required: true
+    orderId:
+      description: "Order Id"
+      type: number
+      required: true
+  get:
+    description: "Get order by id placed by a customer"
+    responses:
+      200:
+        body:
+          application/json:
+            type: Order
+            example:
+              value: !include examples/Order.json
+              strict: false
+      404:
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorOrderNotFound
+              strict: false
+      500:
+        description: "Some server side error occurred."
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorInternalServer
+              strict: false
+  put:
+    description: "Update an Order by id. \
+    \ Add or update new products in order, update delivery address etc. \
+    \ Product model is encapsulcated in Order model"
+    body:
+      type: Order
+      example:
+        value: !include examples/Order.json
+    responses:
+      200:
+        description: "Order updated successfully"
+        body:
+          application/json:
+            type: Order
+            example:
+              value: !include examples/Order.json
+      404:
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorOrderNotFound
+              strict: false
+      400:
+        description: "Request syntactically incorrect. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorBadRequest
+              strict: false
+      500:
+        description: "Some server side error occurred."
+        body:
+          application/json:
+            type: Error
+            example:
+              value: ErrorInternalServer
+              strict: false
+      409:
+        description: "Creation failed because of conflict with another resource. Look for details in the response payload."
+        body:
+          application/json:
+            schema: Error
+            example:
+              value: ErrorConflictingResource
+              strict: false
+  /cancel:
+    put:
+      description: "Cancel Order for a Customer by order Id"
+      responses:
+        200:
+          description: "Order cancelled successfully"
+          body:
+            application/json:
+              type: Order
+              example:
+                value: !include examples/Order.json
+        404:
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorOrderNotFound
+                strict: false
+        400:
+          description: "Request syntactically incorrect. Look for details in the response payload."
+          body:
+            application/json:
+              schema: Error
+              example:
+                value: ErrorBadRequest
+                strict: false
+        500:
+          description: "Some server side error occurred."
+          body:
+            application/json:
+              type: Error
+              example:
+                value: ErrorInternalServer
+                strict: false
+        409:
+          description: "Creation failed because of conflict with another resource. Look for details in the response payload."
+          body:
+            application/json:
+              schema: Error
+              example:
+                value: ErrorConflictingResource
+                strict: false
